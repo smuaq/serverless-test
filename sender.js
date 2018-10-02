@@ -1,40 +1,38 @@
 var AWS = require('aws-sdk');
 var sqs = new AWS.SQS({
-  region: 'us-east-1'
+    region: `${process.env.AWS_REGION}`
 });
 
 var responseConfig = require('./lib/response');
 
-exports.handler = function (event, context, callback) {
-  var accountId = context.invokedFunctionArn.split(":")[4];
-  var queueUrl = 'https://sqs.us-east-1.amazonaws.com/' + accountId + '/TestingQueue';
+exports.handler = function(event, context, callback) {
+    var accountId = context.invokedFunctionArn.split(":")[4];
+    var queueUrl = `${process.env.QUEUE_URL}/${accountId}/${process.env.QUEUE_NAME}`;
 
-  
-  var response = {};
+    var response = {};
 
-  // SQS message parameters
-  var params = {
-    MessageBody: event.body,
-    QueueUrl: queueUrl
-  };
+    // SQS message parameters
+    var params = {
+        MessageBody: event.body,
+        QueueUrl: queueUrl
+    };
+    sqs.sendMessage(params, function (err, data) {
+        if (err) {
 
-  sqs.sendMessage(params, function (err, data) {
-    if (err) {
+            let statusCode = 500;
+            if(err.code === 'MissingRequiredParameter'){
+                err['message'] = 'Please enter some data';
+                statusCode = 400;
+            }
 
-      let statusCode = 500;
-      if(err.code === 'MissingRequiredParameter'){
-        err['message'] = 'Please enter some data';
-        statusCode = 400;
-      }
+            response = responseConfig.failure(statusCode, err);
 
-      response = responseConfig.failure(statusCode, err);
-
-    } else {
-      response = responseConfig.success(200, {
-        message: 'Sent to ' + queueUrl,
-        messageId: data.MessageId
-      })
-    }
-    callback(null, response);
-  });
+        } else {
+            response = responseConfig.success(200, {
+                message: 'Sent to ' + queueUrl,
+                messageId: data.MessageId
+            })
+        }
+        callback(null, response);
+    });
 }

@@ -1,11 +1,13 @@
-service: s3-crud-shahrukh # NOTE: update this with your service name
+service: nm-parser
 
-# You can pin your service to only deploy with a specific Serverless version
-# Check out our docs for more details
-# frameworkVersion: "=X.X.X"
+package:
+  exclude:
+    - node_modules/**
 
 custom:
-  bucket: shahrukh-crud
+  bucket: usman-test-bucket-333
+  bucketPath: styles/messages
+  queueName: nmQueue
 
 provider:
   name: aws
@@ -16,20 +18,32 @@ provider:
       - Effect: Allow
         Action:
           - s3:PutObject
-        Resource: "arn:aws:s3:::${self:custom.bucket}/*"
-      - Effect: Allow
-        Action:
           - s3:GetObject
         Resource: "arn:aws:s3:::${self:custom.bucket}/*"
       - Effect: "Allow"
         Action:
           - "sqs:SendMessage"
           - "sqs:GetQueueUrl"
-        Resource: "arn:aws:sqs:${self:provider.region}:479920737778:TestingQueue"
+        Resource:
+          - 'Fn::Join':
+            - ':'
+            -
+              - 'arn:aws:sqs'
+              - Ref: 'AWS::Region'
+              - Ref: 'AWS::AccountId'
+              - '${self:custom.queueName}'
       - Effect: "Allow"
         Action:
           - "sqs:ListQueues"
-        Resource: "arn:aws:sqs:${self:provider.region}:479920737778:*"
+        Resource:
+          - 'Fn::Join':
+            - ':'
+            -
+              - 'arn:aws:sqs'
+              - '${self:provider.region}'
+              - Ref: 'AWS::AccountId'
+              - '*'
+
 
 functions:
 #  saveXml:
@@ -43,6 +57,9 @@ functions:
 
   saveJson:
     handler: saveJson.handler
+    environment:
+      BUCKET: ${self:custom.bucket}
+      BUCKET_PATH: ${self:custom.bucketPath}
     events:
       - s3:
           bucket: ${self:custom.bucket}
@@ -52,6 +69,9 @@ functions:
 
   sender:
       handler: sender.handler
+      environment:
+        QUEUE_URL: https://sqs.${self:provider.region}.amazonaws.com
+        QUEUE_NAME: ${self:custom.queueName}
       events:
         - http:
             path: v1/sender
@@ -59,16 +79,19 @@ functions:
 
   receiver:
     handler: receiver.handler
+    environment:
+      BUCKET: ${self:custom.bucket}
+      BUCKET_PATH: ${self:custom.bucketPath}
     events:
       - sqs:
           arn:
             Fn::GetAtt:
-              - TestingQueue
+              - ${self:custom.queueName}
               - Arn
 
 resources:
   Resources:
-    TestingQueue:
+    nmQueue:
       Type: "AWS::SQS::Queue"
       Properties:
-        QueueName: "TestingQueue"
+        QueueName: ${self:custom.queueName}
