@@ -1,8 +1,9 @@
 const
     AWS = require('aws-sdk'),
-    S3 = new AWS.S3();
+    S3 = new AWS.S3(),
+    uuid = require('./shared/lib/uuid');
 
-var responseConfig = require('./lib/response');
+var responseConfig = require('./shared/lib/response');
 
 exports.handler = (event, context, callback) => {
 
@@ -10,7 +11,7 @@ exports.handler = (event, context, callback) => {
 
     S3.putObject({
         Bucket: `${process.env.BUCKET}`,
-        Key: `${process.env.BUCKET_PATH}/parser.xml`,
+        Key: `${process.env.BUCKET_PATH}/${uuid()}.xml`,
         Body: event.Records[0].body
     })
         .promise()
@@ -18,12 +19,12 @@ exports.handler = (event, context, callback) => {
             response = responseConfig.success(200, {
                 message: 'XML Saved',
                 input: event,
-            })
+            });
             return callback(null, response)
         })
         .catch(e => {
             console.error('ERROR', e);
-            response = responseConfig.failure(500, e)
+            response = responseConfig.failure(500, e);
             callback(response);
         });
 

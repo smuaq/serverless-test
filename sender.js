@@ -3,7 +3,7 @@ var sqs = new AWS.SQS({
     region: `${process.env.AWS_REGION}`
 });
 
-var responseConfig = require('./lib/response');
+var responseConfig = require('./shared/lib/response');
 
 exports.handler = function(event, context, callback) {
     var accountId = context.invokedFunctionArn.split(":")[4];
@@ -35,4 +35,4 @@ exports.handler = function(event, context, callback) {
         }
         callback(null, response);
     });
-}
+};

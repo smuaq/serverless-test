@@ -7,7 +7,7 @@ var parser = new xml2js.Parser({
     explicitArray: false
 });
 
-var responseConfig = require('./lib/response');
+var responseConfig = require('./shared/lib/response');
 
 exports.handler = (event, context, callback) => {
 
@@ -22,7 +22,7 @@ exports.handler = (event, context, callback) => {
             parser.parseString(response.Body.toString('utf-8'), function (err, result) {
                 S3.putObject({
                     Bucket: event.Records[0].s3.bucket.name,
-                    Key: `${process.env.BUCKET_PATH}/parser.json`,
+                    Key: event.Records[0].s3.object.key.replace('xml','json'),
                     Body: JSON.stringify(result)
                 })
                     .promise()

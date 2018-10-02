@@ -8,12 +8,20 @@ custom:
   bucket: usman-test-bucket-333
   bucketPath: styles/messages
   queueName: nmQueue
+  queueUrl: https://sqs.${self:provider.region}.amazonaws.com
+
 
 provider:
   name: aws
   runtime: nodejs8.10
   stage: dev
   region: us-east-1
+  environment:
+    BUCKET: ${self:custom.bucket}
+    BUCKET_PATH: ${self:custom.bucketPath}
+    QUEUE_NAME: ${self:custom.queueName}
+    QUEUE_URL: ${self:custom.queueUrl}
+
   iamRoleStatements:
       - Effect: Allow
         Action:
@@ -57,9 +65,6 @@ functions:
 
   saveJson:
     handler: saveJson.handler
-    environment:
-      BUCKET: ${self:custom.bucket}
-      BUCKET_PATH: ${self:custom.bucketPath}
     events:
       - s3:
           bucket: ${self:custom.bucket}
@@ -79,9 +84,6 @@ functions:
 
   receiver:
     handler: receiver.handler
-    environment:
-      BUCKET: ${self:custom.bucket}
-      BUCKET_PATH: ${self:custom.bucketPath}
     events:
       - sqs:
           arn:
