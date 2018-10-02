@@ -1,0 +1,74 @@
+service: s3-crud # NOTE: update this with your service name
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+custom:
+  bucket: usman-test-bucket-123
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  stage: dev
+  region: us-east-1
+  iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+        Resource: "arn:aws:s3:::${self:custom.bucket}/*"
+      - Effect: Allow
+        Action:
+          - s3:GetObject
+        Resource: "arn:aws:s3:::${self:custom.bucket}/*"
+      - Effect: "Allow"
+        Action:
+          - "sqs:SendMessage"
+          - "sqs:GetQueueUrl"
+        Resource: "arn:aws:sqs:${self:provider.region}:479920737778:ParserQueue"
+      - Effect: "Allow"
+        Action:
+          - "sqs:ListQueues"
+        Resource: "arn:aws:sqs:${self:provider.region}:479920737778:*"
+
+functions:
+#  saveXml:
+#    handler: saveXml.handler
+#    environment:
+#        BUCKET: ${self:custom.bucket}
+#    events:
+#      - http:
+#          path: save/xml
+#          method: post
+
+  saveJson:
+    handler: saveJson.handler
+    events:
+      - s3:
+          bucket: ${self:custom.bucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .xml
+
+  sender:
+      handler: sender.handler
+      events:
+        - http:
+            path: v1/sender
+            method: post
+
+  receiver:
+    handler: receiver.handler
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - ParserQueue
+              - Arn
+
+resources:
+  Resources:
+    ParserQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: "ParserQueue"
