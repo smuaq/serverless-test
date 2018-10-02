@@ -1,41 +1,40 @@
 var AWS = require('aws-sdk');
 var sqs = new AWS.SQS({
-    region: 'us-east-1'
+  region: 'us-east-1'
 });
 
-exports.handler = function(event, context, callback) {
-    var accountId = context.invokedFunctionArn.split(":")[4];
-    var queueUrl = 'https://sqs.us-east-1.amazonaws.com/' + accountId + '/ParserQueue';
+var responseConfig = require('./lib/response');
 
-    // response and status of HTTP endpoint
-    var responseBody = {
-        message: ''
-    };
-    var responseCode = 200;
+exports.handler = function (event, context, callback) {
+  var accountId = context.invokedFunctionArn.split(":")[4];
+  var queueUrl = 'https://sqs.us-east-1.amazonaws.com/' + accountId + '/TestingQueue';
 
-    // SQS message parameters
-    var params = {
-        MessageBody: event.body,
-        QueueUrl: queueUrl
-    };
+  
+  var response = {};
 
-    sqs.sendMessage(params, function(err, data) {
-        if (err) {
-            console.log('error:', "failed to send message" + err);
-            var responseCode = 500;
-        } else {
-            console.log('data:', data.MessageId);
-            responseBody.message = 'Sent to ' + queueUrl;
-            responseBody.messageId = data.MessageId;
-        }
-        var response = {
-            statusCode: responseCode,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(responseBody)
-        };
+  // SQS message parameters
+  var params = {
+    MessageBody: event.body,
+    QueueUrl: queueUrl
+  };
 
-        callback(null, response);
-    });
+  sqs.sendMessage(params, function (err, data) {
+    if (err) {
+
+      let statusCode = 500;
+      if(err.code === 'MissingRequiredParameter'){
+        err['message'] = 'Please enter some data';
+        statusCode = 400;
+      }
+
+      response = responseConfig.failure(statusCode, err);
+
+    } else {
+      response = responseConfig.success(200, {
+        message: 'Sent to ' + queueUrl,
+        messageId: data.MessageId
+      })
+    }
+    callback(null, response);
+  });
 }

@@ -1,11 +1,11 @@
-service: s3-crud # NOTE: update this with your service name
+service: s3-crud-shahrukh # NOTE: update this with your service name
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
 # frameworkVersion: "=X.X.X"
 
 custom:
-  bucket: usman-test-bucket-123
+  bucket: shahrukh-crud
 
 provider:
   name: aws
@@ -25,7 +25,7 @@ provider:
         Action:
           - "sqs:SendMessage"
           - "sqs:GetQueueUrl"
-        Resource: "arn:aws:sqs:${self:provider.region}:479920737778:ParserQueue"
+        Resource: "arn:aws:sqs:${self:provider.region}:479920737778:TestingQueue"
       - Effect: "Allow"
         Action:
           - "sqs:ListQueues"
@@ -63,12 +63,12 @@ functions:
       - sqs:
           arn:
             Fn::GetAtt:
-              - ParserQueue
+              - TestingQueue
               - Arn
 
 resources:
   Resources:
-    ParserQueue:
+    TestingQueue:
       Type: "AWS::SQS::Queue"
       Properties:
-        QueueName: "ParserQueue"
+        QueueName: "TestingQueue"
